@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Student Management</title>
+
+    <!-- ADDED: CSS link -->
+    <link rel="stylesheet" href="Lab03style.css">
+</head>
+
+<body> <!-- ADDED: body tag -->
+
+<h1>Student Management</h1>
+
+<input type="text" id="pageSearch" placeholder="Search by name">
+
+<label for="sortDropdown">Sort by:</label>
+<select id="sortDropdown">
+    <option value="name">Name</option>
+    <option value="age">Age</option>
+</select>
+
+<p id="noResults" style="display:none;">No students found.</p>
+
+<table id="myTable">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Course</th>
+        </tr>
+    </thead>
+    <tbody></tbody> <!-- FIXED: tbody placement -->
+</table>
+
+<!-- FIXED: removed action & method (JSON cannot receive POST) -->
+<form id="studentForm">
+    <p>
+        <label for="name">Name:</label>
+        <input type="text" id="name" required>
+        <span id="nameErrorMsg"></span>
+    </p>
+
+    <p>
+        <label for="age">Age:</label>
+        <input type="text" id="age" required>
+        <span id="ageErrorMsg"></span>
+    </p>
+
+    <p>
+        <label for="course">Course:</label>
+        <input type="text" id="course" required>
+    </p>
+
+    <button type="submit">Add Student</button>
+</form>
+
+<script>
+let tableData = [];
+const tbody = document.querySelector('#myTable tbody');
+const searchInput = document.getElementById('pageSearch');
+const sortDropdown = document.getElementById('sortDropdown');
+const noResults = document.getElementById('noResults');
+
+/* ---------------- LOAD JSON ---------------- */
+document.addEventListener('DOMContentLoaded', () => {
+    fetch('students.json')
+        .then(res => res.json())
+        .then(data => {
+            tableData = data;
+            renderTable(tableData);   // TABLE RENDERS IMMEDIATELY
+        });
+});
+
+/* ---------------- RENDER TABLE ---------------- */
+function renderTable(data, highlightLast = false) {
+    tbody.innerHTML = '';
+    noResults.style.display = data.length === 0 ? "block" : "none";
+
+    data.forEach((student, index) => {
+        const tr = document.createElement('tr');
+
+        if (highlightLast && index === data.length - 1) {
+            tr.classList.add('highlight');
+        }
+
+        tr.innerHTML = `
+            <td>${student.name}</td>
+            <td>${student.age}</td>
+            <td>${student.course}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+/* ---------------- SEARCH ---------------- */
+searchInput.addEventListener('keyup', () => {
+    const value = searchInput.value.toLowerCase();
+    const filtered = tableData.filter(s =>
+        s.name.toLowerCase().includes(value)
+    );
+    renderTable(filtered);
+});
+
+/* ---------------- SORT ---------------- */
+sortDropdown.addEventListener('change', () => {
+    const key = sortDropdown.value;
+    tableData.sort((a, b) =>
+        key === 'name'
+            ? a.name.localeCompare(b.name)
+            : a.age - b.age
+    );
+    renderTable(tableData);
+});
+
+/* ---------------- ADD STUDENT ---------------- */
+document.getElementById('studentForm').addEventListener('submit', e => {
+    e.preventDefault();
+
+    const name = document.getElementById('name').value.trim();
+    const age = document.getElementById('age').value.trim();
+    const course = document.getElementById('course').value.trim();
+
+    let valid = true;
+    document.getElementById('nameErrorMsg').textContent = '';
+    document.getElementById('ageErrorMsg').textContent = '';
+
+    if (/\d/.test(name)) {
+        document.getElementById('nameErrorMsg').textContent =
+            "Name must not contain digits.";
+        valid = false;
+    }
+
+    if (isNaN(age)) {
+        document.getElementById('ageErrorMsg').textContent =
+            "Age must be a number.";
+        valid = false;
+    }
+
+    if (!valid) return;
+
+    tableData.push({
+        id: tableData.length + 1,
+        name,
+        age: Number(age),
+        course
+    });
+
+    renderTable(tableData, true);
+
+    /* CLEAR FORM */
+    e.target.reset();
+});
+</script>
+
+</body>
+</html>
